@@ -56,7 +56,7 @@ function parseArgs(argv) {
   const args = {
     url: null, out: null, viewports: ['desktop'], scale: 2, wait: 1500,
     assets: true, layout: true, motion: true,
-    sample: null, hover: false, click: false, sampleMs: 1500,
+    sample: null, action: null, hover: false, click: false, sampleMs: 1500,
   };
   const rest = argv.slice(2);
   for (let i = 0; i < rest.length; i++) {
@@ -71,16 +71,19 @@ function parseArgs(argv) {
     else if (a === '--sample') args.sample = rest[++i];
     else if (a === '--hover') args.hover = true;
     else if (a === '--click') args.click = true;
+    else if (a === '--action') args.action = rest[++i];
     else if (a === '--sample-ms') args.sampleMs = Number(rest[++i]);
     else if (!args.url) args.url = a;
     else throw new Error(`Unknown argument: ${a}`);
   }
   if (!args.url) {
-    console.error('Usage: node capture.js <url> [--out dir] [--viewports desktop,laptop,tablet,mobile] [--scale 2] [--wait 1500] [--no-assets] [--no-layout] [--no-motion] [--sample "<selector>" [--hover|--click] [--sample-ms 1500]]');
+    console.error('Usage: node capture.js <url> [--out dir] [--viewports desktop,laptop,tablet,mobile] [--scale 2] [--wait 1500] [--no-assets] [--no-layout] [--no-motion] [--sample "<selector>" [--hover|--click] [--action "<selector>"] [--sample-ms 1500]]');
     process.exit(1);
   }
   for (const v of args.viewports) {
-    if (!PRESETS[v]) throw new Error(`Unknown viewport "${v}". Use: ${Object.keys(PRESETS).join(', ')}`);
+    if (!PRESETS[v] && !/^\d+x\d+$/.test(v)) {
+      throw new Error(`Unknown viewport "${v}". Use: ${Object.keys(PRESETS).join(', ')} or WIDTHxHEIGHT`);
+    }
   }
   if (!args.out) {
     const host = new URL(args.url).hostname.replace(/[^a-z0-9.-]/gi, '_');
@@ -102,7 +105,10 @@ async function captureViewport(browser, args, name) {
   fs.mkdirSync(dir, { recursive: true });
   if (args.assets) fs.mkdirSync(assetsDir, { recursive: true });
 
-  const preset = PRESETS[name];
+  const preset = PRESETS[name] || (() => {
+    const [w, h] = name.split('x').map(Number);
+    return { width: w, height: h, isMobile: w < 500, hasTouch: w < 500 };
+  })();
   const context = await browser.newContext({
     viewport: { width: preset.width, height: preset.height },
     isMobile: !!preset.isMobile,
@@ -165,13 +171,15 @@ async function captureViewport(browser, args, name) {
   if (args.sample) {
     const frames = await sampleElement(page, {
       selector: args.sample,
-      props: ['transform', 'opacity', 'filter', 'background-color', 'color', 'width', 'height', 'top', 'left'],
+      props: ['transform', 'opacity', 'filter', 'background-color', 'color', 'border-color',
+              'box-shadow', 'width', 'height', 'top', 'left'],
       durationMs: args.sampleMs,
       hover: args.hover,
       click: args.click,
+      action: args.action,
     });
     const file = `sample-${args.sample.replace(/[^a-zA-Z0-9]+/g, '_').slice(0, 40)}.json`;
-    fs.writeFileSync(path.join(dir, file), JSON.stringify({ selector: args.sample, hover: args.hover, frames }, null, 2));
+    fs.writeFileSync(path.join(dir, file), JSON.stringify({ selector: args.sample, action: args.action, hover: args.hover, click: args.click, frames }, null, 2));
   }
 
   fs.writeFileSync(path.join(dir, 'page.html'), await page.content());

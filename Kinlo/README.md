@@ -28,7 +28,8 @@ Kết quả gồm `layout.json`, `motion.json`, `requests.json`, `screenshot.png
 | tablet | 768 | ~3156 | sticky, rộng 84 (rail) | Giống laptop |
 | mobile | 390 | ~4346 | `aside.side` fixed, rộng 300 (drawer, ẩn ngoài màn hình) | `nav.tabbar` fixed ở đáy, cao 66, rộng 370, có nút "more" |
 
-Ghi chú: breakpoint giữa desktop (248) và laptop (84) nằm trong khoảng 1024–1440. Chưa đo chính xác ngưỡng. Cần đo thêm khoảng 1200 và 1280.
+Breakpoint sidebar đã đo: ở 1270 sidebar rộng 84 (rail), ở 1280 rộng 248 (đầy đủ). Ngưỡng nằm trong khoảng 1271–1280, có thể là 1280px.
+Các mốc đã đo: 1024, 1200, 1240, 1260, 1270 đều là rail. 1280 và 1440 đều là sidebar đầy đủ.
 
 ## Cấu trúc layout
 
@@ -50,7 +51,7 @@ Ghi chú: breakpoint giữa desktop (248) và laptop (84) nằm trong khoảng 1
 | Component | Vai trò | Ghi chú |
 |---|---|---|
 | AppShell (layout) | Sidebar + topbar + vùng nội dung + tabbar mobile | `+layout.svelte` |
-| Sidebar | Điều hướng, có chế độ đầy đủ và rail | Breakpoint giữa 1024 và 1440 |
+| Sidebar | Điều hướng, có chế độ đầy đủ và rail | Breakpoint 1280 (rail khi dưới 1280) |
 | NavItem | Mục điều hướng có nhãn, count và pill trượt | `nav__item`, `nav__pill` |
 | MobileTabbar | Thanh dưới đáy trên mobile, có drawer | `tabbar`, `tabbar__pill` |
 | TopBar / Breadcrumb | Thanh trên cùng, có trạng thái dính | `top`, `crumbs` |
@@ -62,8 +63,8 @@ Ghi chú: breakpoint giữa desktop (248) và laptop (84) nằm trong khoảng 1
 | BarChart | Biểu đồ cột | `bars__bar`, `bars__col.is-hi` |
 | AreaChart | Biểu đồ vùng | `area__cmp`, `area__x` |
 | ChartTooltip | Tooltip biểu đồ | `charttip` |
-| SegmentedControl | Chọn một trong nhiều | `seg`, `seg__thumb` |
-| Checkbox | Checkbox dạng switch | `check`, `aria-checked` |
+| SegmentedControl | Chọn một trong nhiều, dùng `aria-pressed` | `seg`, `seg__thumb` |
+| Checkbox | Checkbox dạng switch (chưa thấy trên trang này) | `aria-checked` |
 | StatusDot | Chấm trạng thái nhấp nháy | `tonight__dot`, `steps__dot` |
 
 ## Trạng thái hover (đã đo)
@@ -73,9 +74,17 @@ Ghi chú: breakpoint giữa desktop (248) và laptop (84) nằm trong khoảng 1
 | `.btn--primary` | hover | Nền từ rgb(14,108,132) sang rgb(18,125,152), transform gần 0 | khoảng 0.8s (theo transition) |
 | `.btn--ghost` | hover | Nền từ trong suốt sang rgba(23,37,45,0.043) | khoảng 0.8s |
 | `.nav__pill` | hover | Không đổi ở các thuộc tính đã đo | — |
-| `.seg` | click | Không đổi khi click vào thumb đang chọn. Cần click vào option khác để đo | — |
+| `section.card` | hover | Không đổi ở các thuộc tính đã đo (nền, viền, box-shadow) | — |
+| Segmented control (`.seg > button`) | click option 3 | Option đang chọn đánh dấu bằng `aria-pressed="true"`. `.seg__thumb` chỉ dịch khoảng 1px (743 → 744), nên hiệu ứng chủ yếu là đổi trạng thái, không phải trượt | khoảng 0.9s |
 
-Chưa đo: hover trên `.card`, click trên tab và checkbox, và trạng thái khi mở drawer mobile. Cần chọn selector cụ thể hơn để đo.
+Các option của segmented control là "7 days", "12 weeks", "12 months".
+
+Drawer mobile (`aside.side`, 390px):
+- Khi đóng: `visibility: hidden`.
+- Bấm `.tabbar__more`: `visibility` đổi thành `visible`, xuất hiện một lớp nền mờ (class chứa scrim, backdrop hoặc overlay). `transform` vẫn là `none` ở cuối transition, nên drawer không trượt bằng transform. Có thể hiện bằng visibility và opacity.
+- Lớp class trên `aside` vẫn là `side` trước và sau khi mở. Trạng thái mở nằm ở class khác, cần xác định thêm.
+
+Không tìm thấy checkbox hay tab (`[role=tab]`, `input[type=checkbox]`, `[role=switch]`) trên trang này.
 
 ## Chuyển động
 
@@ -90,5 +99,6 @@ Chưa đo: hover trên `.card`, click trên tab và checkbox, và trạng thái 
 2. Dựng các component nguyên tử: Button, IconButton, Card, PageHeader, SegmentedControl, Checkbox.
 3. Dựng biểu đồ bằng SVG thuần, dữ liệu giả.
 4. Ghép từng trang (route) theo cấu trúc trong mục layout.
-5. Đo thêm breakpoint 1200–1280, drawer mobile và các hover còn lại trước khi viết chuyển động chi tiết.
+5. Xác định class trạng thái mở của drawer mobile và lớp nền mờ, rồi đo hiệu ứng chi tiết.
+   Tìm trang khác có checkbox và tab để đo.
 6. Kiểm tra đối chiếu với bản chụp ở bốn viewport.

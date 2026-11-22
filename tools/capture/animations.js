@@ -135,7 +135,7 @@ async function scrollTimeline(page, stepPx = null, settleMs = 350) {
 
 // Record computed style of one element every frame for durationMs.
 // If hover or click is set, that action is performed on the element while sampling runs.
-async function sampleElement(page, { selector, props, durationMs = 1500, hover = false, click = false }) {
+async function sampleElement(page, { selector, props, durationMs = 1500, hover = false, click = false, action = null }) {
   const sampling = page.evaluate(
     ({ selector, props, durationMs }) => new Promise((resolve, reject) => {
       const el = document.querySelector(selector);
@@ -155,8 +155,9 @@ async function sampleElement(page, { selector, props, durationMs = 1500, hover =
     }),
     { selector, props, durationMs }
   );
-  if (click) await page.click(selector, { timeout: 5000 }).catch(() => {});
-  else if (hover) await page.hover(selector).catch(() => {});
+  const target = action || selector;
+  if (click) await page.click(target, { timeout: 5000 }).catch(() => {});
+  else if (hover) await page.hover(target).catch(() => {});
   return sampling;
 }
 
