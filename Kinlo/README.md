@@ -126,3 +126,55 @@ Các trang chi tiết đã thấy: tin nhắn (6 mục mẫu), hóa đơn (2 m�
 ## Nguồn và giấy phép
 
 Trang demo có liên kết "Buy this template" tới cửa hàng bán template. Đây là sản phẩm thương mại. Nếu dự án dùng template này, hãy mua và dùng bản gốc từ người bán, kèm source code và giấy phép của họ. Repo này không lưu source code gốc.
+
+## Kết quả scan toàn bộ route (45 trang)
+
+Nguồn: crawl bằng Playwright ở viewport desktop 1440. Dữ liệu thô nằm ngoài repo (scratchpad). Phần này chỉ ghi cấu trúc.
+
+**Khung chung (mọi trang):** sidebar 248px + vùng nội dung. Vùng nội dung gồm header 64px (menu, breadcrumb, ô tìm kiếm, nút tạo mới, lịch, đổi theme) và `view` chứa nội dung trang. Mobile có tabbar đáy và drawer.
+
+**Lưu ý:** có một nút "preview" nổi góc dưới phải do bản demo chèn vào. Không thuộc template, không đưa vào app.
+
+### Nhóm trang → bố cục
+
+| Nhóm | Route | Bố cục chính |
+|---|---|---|
+| Dashboard | `/dashboard` | Lưới 7 thẻ: doanh thu, số dư, lịch hôm nay, sơ đồ ghế, nhắc gia hạn, hộp thư, việc cần xử lý |
+| Hộp thư | `/inbox`, `/inbox/:id`, `starred`, `sent`, `archive` | Danh sách thư + khung đọc (thread, ô trả lời) |
+| Lịch | `/calendar`, `month`, `agenda` | Lưới tháng 7 cột với chip theo loại sự kiện; chế độ agenda theo ngày |
+| Tài chính | `/finance`, `overview`, `budgets`, `cards`, `transactions`, `:id` | KPI, biểu đồ vùng, thanh ngân sách, danh sách thẻ, bảng giao dịch có bộ lọc và panel chi tiết |
+| Kế toán | `/accounts`, `bills`, `banks`, `invoices`, `invoices/:id`, `vat` | Kanban 3 cột hóa đơn, thẻ ngân hàng, khổ hóa đơn in, ô VAT |
+| Báo cáo | `/reports` | Bộ chọn báo cáo, biểu đồ, bảng có dòng tổng, xếp hạng, danh sách đã lưu |
+| Lương & nhân sự | `/payroll`, `rota`, `leave` | Lưới ca làm (timeline), danh sách nghỉ phép, thanh phân bổ phép |
+| Nhân sự | `/people`, `people/directory/:id` | Thống kê, lưới thẻ người có filter |
+| Hợp đồng | `/contracts`, `licence`, `signatures/:id` | Tiến trình ký (steps), timeline, thông báo |
+| Cài đặt | `/settings` | Hai cột: menu phụ + form theo nhóm |
+| Trợ giúp | `/help` | Ô tìm kiếm lớn, thẻ hướng dẫn, FAQ accordion, form liên hệ |
+
+### Block tùy biến (dùng chung nhiều trang)
+
+Thẻ (card) có biến thể phẳng (không padding), KPI row (4 màu nhấn), pill theo trạng thái (tốt, cảnh báo, lỗi, thông tin, nhấn), chip, avatar và avatar stack, segmented control có thumb trượt, tabs có gạch chân, thanh tiến trình, checkbox, bảng có chế độ stack trên mobile, stepper, timeline, empty state, drawer có scrim.
+
+### Kế hoạch component (tên do mình đặt, viết lại từ đầu)
+
+- Shell: `AppShell`, `Sidebar`, `Topbar`, `PageHeader`, `MobileTabbar`, `Drawer`
+- Primitives: `Card`, `Button`, `Pill`, `Avatar`, `AvatarStack`, `Kpi`, `KpiRow`, `SegmentedControl`, `Tabs`, `ProgressBar`, `Checkbox`, `DataTable`, `Stepper`, `EmptyState`
+- Domain: `MailList`, `ThreadReader`, `CalendarMonth`, `AgendaList`, `BudgetRow`, `BankCard`, `KanbanColumns`, `InvoicePaper`, `RotaGrid`, `LeaveStrip`, `PersonCard`, `SeatMap`, `FaqList`, `Timeline`
+- Route: một `+page.svelte` cho mỗi nhóm trong bảng trên, dùng dữ liệu giả.
+
+Mã nguồn Svelte nằm trong `Kinlo/app/`, viết mới, không sao chép từ template.
+
+## Trạng thái app (`Kinlo/app/`)
+
+Đã có:
+- Project SvelteKit 5 (Kit 3, Vite 8, adapter-static, prerender toàn bộ). Chạy `npm install && npm run build` đạt.
+- Khung shell: sidebar (rail khi < 1280, drawer khi < 768), topbar, tabbar đáy mobile, breadcrumb, đổi theme.
+- Primitives: `Card`, `Kpi`, `Pill`, `Avatar`, `SegmentedControl`, `ProgressBar`, `DataTable`, `PageHeader`.
+- 11 nhóm route có trang gốc với dữ liệu giả. Đã kiểm tra desktop 1440 và mobile 390 bằng ảnh chụp, không có lỗi runtime.
+
+Chưa có (cần làm tiếp):
+- Trang chi tiết: `/inbox/:id`, `/accounts/invoices/:id`, `/contracts/signatures/:id`, `/people/:id`, `/finance/transactions/:id`.
+- Các component trong kế hoạch chưa viết: `Tabs`, `Checkbox`, `Stepper`, `Timeline`, `MailList`, `ThreadReader`, `CalendarMonth`, `AgendaList`, `BudgetRow`, `BankCard`, `KanbanColumns`, `InvoicePaper`, `RotaGrid`, `LeaveStrip`, `PersonCard`, `SeatMap`, `FaqList`, `Drawer`.
+- Biểu đồ đang là thanh CSS giả, chưa khớp số liệu đã đo.
+- Breakpoint 1280 và trạng thái mở drawer mới chỉ kiểm tra qua CSS, chưa đo bằng ảnh chụp.
+- Dữ liệu trong `src/lib/nav.js` và các trang là placeholder. Không có text, ảnh hay source nào từ template.
