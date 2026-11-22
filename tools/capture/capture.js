@@ -8,10 +8,14 @@
  *   <out>/<viewport>/layout.json      every element: tag, box, key computed styles
  *   <out>/<viewport>/requests.json    every network request and its status
  *   <out>/<viewport>/assets/          css / js / images / fonts / media bodies
+ *   <out>/<viewport>/motion.json      running animations, @keyframes, transition rules,
+ *                                     libraries detected, scroll-position timeline
+ *   <out>/<viewport>/sample-*.json    per-frame computed style of --sample element
  *
  * Usage:
  *   node capture.js <url> [--out dir] [--viewports desktop,tablet,mobile]
- *                   [--scale 2] [--wait 1500] [--no-assets] [--no-layout]
+ *                   [--scale 2] [--wait 1500] [--no-assets] [--no-layout] [--no-motion]
+ *                   [--sample "<css selector>" [--hover] [--sample-ms 1500]]
  *
  * Only use on sites you own or have permission to study.
  */
@@ -20,6 +24,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { collectAnimations, scrollTimeline, sampleElement } = require('./animations');
 
 // Playwright is preinstalled in this environment. Fall back to the global path.
 let chromium;
@@ -47,7 +52,11 @@ const STYLE_PROPS = [
 ];
 
 function parseArgs(argv) {
-  const args = { url: null, out: null, viewports: ['desktop'], scale: 2, wait: 1500, assets: true, layout: true };
+  const args = {
+    url: null, out: null, viewports: ['desktop'], scale: 2, wait: 1500,
+    assets: true, layout: true, motion: true,
+    sample: null, hover: false, sampleMs: 1500,
+  };
   const rest = argv.slice(2);
   for (let i = 0; i < rest.length; i++) {
     const a = rest[i];
@@ -57,11 +66,15 @@ function parseArgs(argv) {
     else if (a === '--wait') args.wait = Number(rest[++i]);
     else if (a === '--no-assets') args.assets = false;
     else if (a === '--no-layout') args.layout = false;
+    else if (a === '--no-motion') args.motion = false;
+    else if (a === '--sample') args.sample = rest[++i];
+    else if (a === '--hover') args.hover = true;
+    else if (a === '--sample-ms') args.sampleMs = Number(rest[++i]);
     else if (!args.url) args.url = a;
     else throw new Error(`Unknown argument: ${a}`);
   }
   if (!args.url) {
-    console.error('Usage: node capture.js <url> [--out dir] [--viewports desktop,tablet,mobile] [--scale 2] [--wait 1500] [--no-assets] [--no-layout]');
+    console.error('Usage: node capture.js <url> [--out dir] [--viewports desktop,tablet,mobile] [--scale 2] [--wait 1500] [--no-assets] [--no-layout] [--no-motion] [--sample "<selector>" [--hover] [--sample-ms 1500]]');
     process.exit(1);
   }
   for (const v of args.viewports) {
@@ -127,6 +140,9 @@ async function captureViewport(browser, args, name) {
   await page.goto(args.url, { waitUntil: 'networkidle', timeout: 60000 });
   await page.waitForTimeout(args.wait);
 
+  // Motion: what is animating right at load, before any scrolling.
+  const motion = args.motion ? { atLoad: await collectAnimations(page) } : null;
+
   // Scroll once to trigger lazy-loaded images and sections, then return to top.
   await page.evaluate(async () => {
     const step = Math.max(400, window.innerHeight);
@@ -137,6 +153,23 @@ async function captureViewport(browser, args, name) {
     window.scrollTo(0, 0);
   });
   await page.waitForLoadState('networkidle').catch(() => {});
+
+  if (motion) {
+    motion.scrollTimeline = await scrollTimeline(page);
+    motion.afterScroll = await collectAnimations(page);
+    fs.writeFileSync(path.join(dir, 'motion.json'), JSON.stringify(motion, null, 2));
+  }
+
+  if (args.sample) {
+    const frames = await sampleElement(page, {
+      selector: args.sample,
+      props: ['transform', 'opacity', 'filter', 'background-color', 'color', 'width', 'height', 'top', 'left'],
+      durationMs: args.sampleMs,
+      hover: args.hover,
+    });
+    const file = `sample-${args.sample.replace(/[^a-zA-Z0-9]+/g, '_').slice(0, 40)}.json`;
+    fs.writeFileSync(path.join(dir, file), JSON.stringify({ selector: args.sample, hover: args.hover, frames }, null, 2));
+  }
 
   fs.writeFileSync(path.join(dir, 'page.html'), await page.content());
   await page.screenshot({ path: path.join(dir, 'screenshot.png'), fullPage: true });
