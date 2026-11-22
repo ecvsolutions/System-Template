@@ -13,7 +13,7 @@
  *   <out>/<viewport>/sample-*.json    per-frame computed style of --sample element
  *
  * Usage:
- *   node capture.js <url> [--out dir] [--viewports desktop,tablet,mobile]
+ *   node capture.js <url> [--out dir] [--viewports desktop,laptop,tablet,mobile]
  *                   [--scale 2] [--wait 1500] [--no-assets] [--no-layout] [--no-motion]
  *                   [--sample "<css selector>" [--hover] [--sample-ms 1500]]
  *
@@ -36,6 +36,7 @@ try {
 
 const PRESETS = {
   desktop: { width: 1440, height: 900 },
+  laptop: { width: 1024, height: 768, isMobile: false },
   tablet: { width: 768, height: 1024, isMobile: false },
   mobile: { width: 390, height: 844, isMobile: true, hasTouch: true },
 };
@@ -55,7 +56,7 @@ function parseArgs(argv) {
   const args = {
     url: null, out: null, viewports: ['desktop'], scale: 2, wait: 1500,
     assets: true, layout: true, motion: true,
-    sample: null, hover: false, sampleMs: 1500,
+    sample: null, hover: false, click: false, sampleMs: 1500,
   };
   const rest = argv.slice(2);
   for (let i = 0; i < rest.length; i++) {
@@ -69,12 +70,13 @@ function parseArgs(argv) {
     else if (a === '--no-motion') args.motion = false;
     else if (a === '--sample') args.sample = rest[++i];
     else if (a === '--hover') args.hover = true;
+    else if (a === '--click') args.click = true;
     else if (a === '--sample-ms') args.sampleMs = Number(rest[++i]);
     else if (!args.url) args.url = a;
     else throw new Error(`Unknown argument: ${a}`);
   }
   if (!args.url) {
-    console.error('Usage: node capture.js <url> [--out dir] [--viewports desktop,tablet,mobile] [--scale 2] [--wait 1500] [--no-assets] [--no-layout] [--no-motion] [--sample "<selector>" [--hover] [--sample-ms 1500]]');
+    console.error('Usage: node capture.js <url> [--out dir] [--viewports desktop,laptop,tablet,mobile] [--scale 2] [--wait 1500] [--no-assets] [--no-layout] [--no-motion] [--sample "<selector>" [--hover|--click] [--sample-ms 1500]]');
     process.exit(1);
   }
   for (const v of args.viewports) {
@@ -166,6 +168,7 @@ async function captureViewport(browser, args, name) {
       props: ['transform', 'opacity', 'filter', 'background-color', 'color', 'width', 'height', 'top', 'left'],
       durationMs: args.sampleMs,
       hover: args.hover,
+      click: args.click,
     });
     const file = `sample-${args.sample.replace(/[^a-zA-Z0-9]+/g, '_').slice(0, 40)}.json`;
     fs.writeFileSync(path.join(dir, file), JSON.stringify({ selector: args.sample, hover: args.hover, frames }, null, 2));
