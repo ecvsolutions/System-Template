@@ -102,3 +102,27 @@ Không tìm thấy checkbox hay tab (`[role=tab]`, `input[type=checkbox]`, `[rol
 5. Xác định class trạng thái mở của drawer mobile và lớp nền mờ, rồi đo hiệu ứng chi tiết.
    Tìm trang khác có checkbox và tab để đo.
 6. Kiểm tra đối chiếu với bản chụp ở bốn viewport.
+
+## Danh sách route (đã liệt kê từ link điều hướng)
+
+Ghi chú: đây là cấu trúc điều hướng (tên route và tên mục), không phải nội dung trang. Số đếm là số hiển thị trên link.
+
+| Route | Mục | Ghi chú |
+|---|---|---|
+| `/dashboard` | Tổng quan | Trang chính |
+| `/inbox` | Hộp thư (3) | Có trang chi tiết tin nhắn `/inbox/inbox/:id` |
+| `/calendar` | Lịch | |
+| `/finance` | Tài chính (12) | Có `/finance/transactions` (chờ phân loại) và `/finance/cards` |
+| `/accounts` | Tài khoản (5) | Có `/accounts/banks`, `/accounts/bills`, `/accounts/invoices/:id` |
+| `/reports` | Báo cáo | |
+| `/payroll` | HR & lương (3) | Có `/payroll/rota` và `/payroll/leave` |
+| `/people` | Nhân sự | |
+| `/contracts` | Hợp đồng (2) | Có `/contracts/licence` và `/contracts/signatures/:id` |
+| `/settings` | Cài đặt | |
+| `/help` | Trung tâm trợ giúp | |
+
+Các trang chi tiết đã thấy: tin nhắn (6 mục mẫu), hóa đơn (2 mục mẫu), chữ ký hợp đồng (2 mục mẫu).
+
+## Nguồn và giấy phép
+
+Trang demo có liên kết "Buy this template" tới cửa hàng bán template. Đây là sản phẩm thương mại. Nếu dự án dùng template này, hãy mua và dùng bản gốc từ người bán, kèm source code và giấy phép của họ. Repo này không lưu source code gốc.
